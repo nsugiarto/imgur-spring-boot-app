@@ -41,7 +41,11 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable()) // Disable CSRF for testing purposes
+                .headers(headers -> headers
+                        .frameOptions(frame -> frame.sameOrigin())// Allow H2 console to load in frames from the same origin
+                )
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/h2-console/**").permitAll() // Allow access to H2 console
                         .requestMatchers("/api/users/register").permitAll() // Allow public access to register endpoint
                         .requestMatchers("/api/images/**").authenticated() // Protect image endpoints
                         .anyRequest().authenticated()
@@ -50,3 +54,5 @@ public class SecurityConfig {
         return http.build();
     }
 }
+
+//

@@ -1,5 +1,7 @@
 package com.example.imgur_app.controller;
 
+import com.example.imgur_app.entity.Image;
+import com.example.imgur_app.repository.ImageRepository;
 import com.example.imgur_app.service.ImgurClient;
 import com.example.imgur_app.entity.User;
 import com.example.imgur_app.repository.UserRepository;
@@ -14,10 +16,12 @@ public class ImageController {
 
     private final ImgurClient imgurClient;
     private final UserRepository userRepository;
+    private final ImageRepository imageRepository;
 
-    public ImageController(ImgurClient imgurClient, UserRepository userRepository) {
+    public ImageController(ImgurClient imgurClient, UserRepository userRepository, ImageRepository imageRepository) {
         this.imgurClient = imgurClient;
         this.userRepository = userRepository;
+        this.imageRepository = imageRepository;
     }
 
     @PostMapping("/upload")
@@ -28,32 +32,42 @@ public class ImageController {
             User user = userRepository.findByUsername(username)
                     .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
 
-            // Upload the image to Imgur
-            String response = imgurClient.uploadImage(image.getBytes());
+            // Upload image to Imgur
+            ImgurClient.ImageMetadata metadata = imgurClient.uploadImage(image.getBytes());
 
-            // Optionally, associate the image with the user (implement this if needed)
-            // Save image metadata to the database if required.
+            // Save image metadata in the database
+            Image savedImage = new Image();
+            savedImage.setDeleteHash(metadata.getDeleteHash());
+            savedImage.setLink(metadata.getLink());
+            savedImage.setUser(user); // Associate the image with the authenticated user
+            imageRepository.save(savedImage);
 
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok("Image uploaded and associated with user successfully!\n Image ID: " + savedImage.getId()
+                    + "\n Delete Hash: " + savedImage.getDeleteHash()
+                    + "\n Link: " + savedImage.getLink());
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Failed to upload image: " + e.getMessage());
         }
     }
 
-    @GetMapping("/{imageId}")
-    public ResponseEntity<?> viewImage(@PathVariable String imageId, Authentication authentication) {
+    @GetMapping("/{id}")
+    public ResponseEntity<?> viewImage(@PathVariable Long id, Authentication authentication) {
         try {
-            // Authenticate the user
             String username = authentication.getName();
-            userRepository.findByUsername(username)
+            User user = userRepository.findByUsername(username)
                     .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
 
-            // Fetch the image details from Imgur
-            String response = imgurClient.viewImage(imageId);
+            Image image = imageRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Image not found with id: " + id));
 
-            return ResponseEntity.ok(response);
+            // Ensure the image belongs to the authenticated user
+            if (!image.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.status(403).body("Access denied");
+            }
+
+            return ResponseEntity.ok(image.getLink());
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Failed to fetch image: " + e.getMessage());
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
     }
 
@@ -62,15 +76,28 @@ public class ImageController {
         try {
             // Authenticate the user
             String username = authentication.getName();
-            userRepository.findByUsername(username)
+            User user = userRepository.findByUsername(username)
                     .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
 
-            // Delete the image from Imgur
-            String response = imgurClient.deleteImage(deleteHash);
+            // Find the image by deleteHash
+            Image image = (Image) imageRepository.findByDeleteHash(deleteHash)
+                    .orElseThrow(() -> new IllegalArgumentException("Image not found with deleteHash: " + deleteHash));
 
-            return ResponseEntity.ok(response);
+            // Ensure the image belongs to the authenticated user
+            if (!image.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.status(403).body("Access denied: You cannot delete this image.");
+            }
+
+            // Delete the image from Imgur
+            imgurClient.deleteImage(deleteHash);
+
+            // Remove the image record from the database
+            imageRepository.delete(image);
+
+            return ResponseEntity.ok("Image deleted successfully!");
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Failed to delete image: " + e.getMessage());
         }
     }
+
 }
