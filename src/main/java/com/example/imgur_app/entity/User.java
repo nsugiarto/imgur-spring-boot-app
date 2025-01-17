@@ -9,8 +9,6 @@ import java.util.List;
 
 @Entity
 @Table(name = "users") // Maps to table named 'users'
-@Getter
-@Setter
 @NoArgsConstructor
 public class User {
 
@@ -29,6 +27,9 @@ public class User {
 
     @Column(name = "last_name")
     private String lastName;
+
+    @Column
+    private String email;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Image> images; // Relationship with Image entity
@@ -55,6 +56,26 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getFirstName(String firstName){
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName(String lastName){
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
 }

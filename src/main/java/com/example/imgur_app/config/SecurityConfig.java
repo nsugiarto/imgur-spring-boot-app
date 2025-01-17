@@ -38,9 +38,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable) // Disable CSRF for testing purposes
+                .csrf(csrf -> csrf.disable()) // Disable CSRF for testing purposes
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/images/upload", "/api/images/**").permitAll() // Allow public access to these endpoints
+                        .requestMatchers("/api/users/**", "/error").permitAll() // Allow public access to user-related endpoints and /error
                         .anyRequest().authenticated() // Secure other endpoints
                 );
         return http.build();
