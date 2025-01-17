@@ -18,12 +18,10 @@ public class UserService {
     }
 
     public User registerUser(UserRegistrationDTO userDTO) {
-        // Check if username is already taken
         if (userRepository.findByUsername(userDTO.getUsername()).isPresent()) {
             throw new IllegalArgumentException("Username is already taken");
         }
 
-        // Create and save the user
         User user = new User();
         user.setUsername(userDTO.getUsername());
         user.setPassword(passwordEncoder.encode(userDTO.getPassword()));

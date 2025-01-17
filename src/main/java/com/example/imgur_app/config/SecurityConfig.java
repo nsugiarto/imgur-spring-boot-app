@@ -12,6 +12,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
+import static org.springframework.security.config.Customizer.withDefaults;
+
 @Configuration
 public class SecurityConfig {
 
@@ -40,9 +42,11 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable()) // Disable CSRF for testing purposes
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/users/**", "/error").permitAll() // Allow public access to user-related endpoints and /error
-                        .anyRequest().authenticated() // Secure other endpoints
-                );
+                        .requestMatchers("/api/users/register").permitAll() // Allow public access to register endpoint
+                        .requestMatchers("/api/images/**").authenticated() // Protect image endpoints
+                        .anyRequest().authenticated()
+                )
+                .httpBasic(withDefaults()); // Modern way to configure Basic Authentication
         return http.build();
     }
 }
