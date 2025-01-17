@@ -3,7 +3,6 @@ package com.example.imgur_app.controller;
 import com.example.imgur_app.dto.UserRegistrationDTO;
 import com.example.imgur_app.entity.User;
 import com.example.imgur_app.service.UserService;
-import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,8 +17,13 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<User> registerUser(@Valid @RequestBody UserRegistrationDTO userDTO) {
-        User user = userService.registerUser(userDTO);
-        return ResponseEntity.ok(user);
+    public ResponseEntity<?> registerUser(@RequestBody UserRegistrationDTO userRegistrationDTO) {
+        try {
+            User user = userService.registerUser(userRegistrationDTO);
+            return ResponseEntity.ok("User registered successfully with ID: " + user.getId());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }
+
